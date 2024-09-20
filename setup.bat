@@ -22,4 +22,11 @@ if not exist data (
     echo data folder already exists.
 )
 
+if not exist results (
+    echo Creating results folder...
+    mkdir results
+) else (
+    echo results folder already exists.
+)
+
 pause

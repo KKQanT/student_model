@@ -226,3 +226,16 @@ import pickle
 
 with open('models/fsvm_class_center_rieman_diff_dmax.pkl','wb') as f:
     pickle.dump(svm, f)
+
+### save results as requests
+import os
+
+y_pred_label = np.where(y_pred > best_T, 1, 0)
+
+model_name = "fsvm_class_center_rieman_diff_dmax"
+results_dir = f"results/{model_name}"
+
+os.makedirs(results_dir, exist_ok=True)
+
+pd.DataFrame(y_pred_label, columns=["labels"]).to_csv(f"{results_dir}/labels.csv", index=False)
+pd.DataFrame(y_pred, columns=["scores"]).to_csv(f"{results_dir}/scores.csv", index=False)
