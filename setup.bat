@@ -15,4 +15,11 @@ if exist requirements.txt (
     echo requirements.txt not found!
 )
 
+if not exist data (
+    echo Creating data folder...
+    mkdir data
+) else (
+    echo data folder already exists.
+)
+
 pause
