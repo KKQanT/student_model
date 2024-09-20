@@ -76,26 +76,6 @@ def evaluate(y_true, y_pred, T=0, se=0.8):
   result['partial_auc'] = partial_auc
   return result
 
-###############################################################################
-
-import pandas as pd
-
-df = pd.DataFrame({
-    "patient_id": mat['batch2_pat_id'].flatten(),
-    "target": mat['batch2_class_id'].flatten(), #<-will be processed later
-    "class_id": mat['batch2_class_id'].flatten()
-})
-df_features = pd.DataFrame(mat['batch2_feat'], columns=feature_cols)
-df = pd.concat((df, df_features), axis=1)
-df['id'] = df.index
-df.loc[df['target'] != 1, 'target'] = 0
-df_patient = df.groupby(['patient_id']).mean().reset_index()[['patient_id', "target"]]
-df_patient.loc[df_patient['target'] > 0, 'target'] = 1
-df = pd.DataFrame(df[df['class_id'] != 3]).reset_index(drop=True)
-df_all_train = df.fillna(0).copy()
-
-################################################################################
-
 df_test = pd.DataFrame({
     "patient_id": mat['batchg_pat_id'].flatten(),
     "target": mat['batchg_class_id'].flatten(), #<-will be processed later
@@ -113,7 +93,6 @@ def normalize(df, feature_cols, selected_cols):
   features_norm = np.sqrt(np.sum(features**2, axis=1))
   features_test = features / features_norm[:, np.newaxis]
   return features_test[:, selected_cols]
-
 
 from sklearn.gaussian_process.kernels import Kernel, RBF
 import numpy as np
@@ -137,31 +116,18 @@ class RBFKernel(Kernel):
     def is_stationary(self):
         return True
     
-X_train = normalize(df_all_train, feature_cols, peaks_to_retain)
-y_train = df_all_train['target'].values
-
 X_test = normalize(df_test, feature_cols, peaks_to_retain)
 y_test = df_test['target'].values
 
-from afc_imbalanced_learning.afc import AFSCTSvm
+######################## Load model ######################
+import pickle
+with open('models/kernel_modified.pkl', 'rb') as f:
+    svm = pickle.load(f)
 
-kernel = RBFKernel(0.5)
-svm = AFSCTSvm(
-    C=0.01,
-    class_weight="balanced",
-    neg_eta=1 * 1,
-    pos_eta=1,
-    kernel=kernel,
-    ignore_outlier_svs=True
-)
-
-y_train_pred = svm.decision_function(X_train)
-fpr, tpr, thresholds = roc_curve(y_train, y_train_pred)
-best_T = thresholds[np.argmax(tpr >= 0.8)]
-train_results = evaluate(y_train, y_train_pred, best_T)
+tuned_threshold = 1.1912385544924478
 
 y_pred = svm.decision_function(X_test)
 
-final_result = evaluate(y_test, y_pred, best_T)
+final_result = evaluate(y_test, y_pred, tuned_threshold)
 print("--------------------------final_result-----------------------------")
 print(final_result)
